@@ -155,7 +155,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
     pictureFile.write((byte)0);
     pictureFile.write(0x24);
 
-	// comments are 34 byte --> "@@@@,2059,xx.xxxx,yy.yyyy,zzzzz,@@@@"
+    // comments are 34 byte --> "@@@@,2059,xx.xxxx,yy.yyyy,zzzzz,@@@@"
     byte i;
     
     for(i=0; i<4; i++)
@@ -185,6 +185,21 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
   // Save last picture id on eeprom   
   EEPROM.write(0, PICid & 0xFF);
   EEPROM.write(1, (PICid >> 8) &  0xFF);  
+}
+
+// Send get file size command
+void CAM::SendGetFileSizeCmd()
+{
+      // Command [56 00 34 01 00]
+   
+      // Returns --> 76 00 34 00 04 00 00 XH XL
+      // XH XL is the file length of JPEG file
+   
+      Serial1.write(0x56);
+      Serial1.write(0x00);
+      Serial1.write(0x34);
+      Serial1.write(0x01);
+      Serial1.write(0x00);
 }
 
 //Send Reset command
