@@ -25,6 +25,7 @@ class CAM
     void shoot(char *, char *, char *, char *);
   
   private:  
+    void SendGetFileSizeCmd();
     void SendTakePhotoCmd();
     void SendResetCmd();
     void SendReadDataCmd();
