@@ -78,15 +78,16 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
    jpegEnd = false;
    curAddr = 0;  
    
-   // Until we reach jpeg end, poll chunks, transfer chunks, save chunks
+   // Until we reach jpeg end, poll chunks, transfer chunks, write chunks
    while(!jpegEnd)
    {  
       j=0;
       count=0;
       
       // Very critical part. 
-      // Timeout after 30 seconds. With max serial baudrate and microSD write cycles it takes about 30sec.
-      if (millis() - startTime > 30000) 
+      // A 640x480 image transfered at max baudrate(115200) and written on microSD takes about 30sec.
+      // Increase ImgTimeout if you operate at lower baudrates 
+      if (millis() - startTime > ImgTimeout*1000) 
       { 
         if(DEBUG_ENABLE)
           DEBUG.println("Timed out"); 
