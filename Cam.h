@@ -6,35 +6,6 @@
   and redistribute it under the terms of this license. 
   A copy should be included with this source. 
   
-  This is an arduino compatible code. 
-  In brief it does the following:
-  Speaks the LinkSprite JPEG TTL Camera protocol
-  Saves the image data on a file on a microSD
-  Injects flight data into the image 
-  
-  Note A: To get max serial baudrate (115200) use a 7.3Mhz crystal
-  Note B: Input voltage 3v3
-  Note C: Picture names only in 7.3 format
-  Note D: Up to 9999 different names can be saved. Then it will roll back to 0 and overwrite. 
-          EEPROM's 1st and 2nd byte are used to keep the last picture ID so in case of reboot
-          the naming continues from where it stopped and not by 0.
-  Note E: When reprogramming the avr all eeprom contents are overwritten with 0xFF.
-
-  
-  Example sketch
-  -----------------
-  #include <Fat16.h>
-  #include <EEPROM.h>
-  
-  void setup()
-  {  
-    camera.setup();
-  }
-  void loop()
-  {
-    camera.shoot(gps.Time, gps.Latitude, gps.Longitude, gps.Altitude);
-  }  
-  -----------------
 */
 
 #ifndef __CAM_H__

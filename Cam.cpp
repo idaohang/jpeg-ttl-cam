@@ -1,3 +1,12 @@
+/*
+  Copyright (C)2011 Kostas Tamateas <nosebleedKT@gmail.com> 
+ 
+  This program is distributed under the terms of the GNU 
+  General Public License, version 2. You may use, modify, 
+  and redistribute it under the terms of this license. 
+  A copy should be included with this source. 
+*/
+
 #include "Cam.h"
 
 Fat16 pictureFile;
@@ -31,7 +40,6 @@ boolean CAM::setup()
   SetBaudRate(115200);
   SetImageSize();
   SendResetCmd();    
-  //SetCompressRatio(); 
   return true; 
 }
 
@@ -70,12 +78,14 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
    jpegEnd = false;
    curAddr = 0;  
    
+   // Until we reach jpeg end, poll chunks, transfer chunks, save chunks
    while(!jpegEnd)
    {  
       j=0;
       count=0;
       
-      // Timeout after 30 seconds. Normal picture saving takes about 30sec.
+      // Very critical part. 
+	  // Timeout after 30 seconds. With max serial baudrate and microSD write cycles it takes about 30sec.
       if (millis() - startTime > 30000) 
       { 
         if(DEBUG_ENABLE)
@@ -98,7 +108,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       }
       
       // Move jpeg chunk from camera's internal buffer to microSD 
-      analogWrite(GREEN, 10);
+	  // Chunk size is always 80 byte
       while(Serial1.available())
       {
         b = Serial1.read();
@@ -107,7 +117,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
            chunk[j] = b;
            pictureFile.write(b);
                       
-           // Check if the jpeg is over
+           // Check whether we reached jpeg end
            if((chunk[j-1]==0xFF)&&(chunk[j]==0xD9))
            {
              StopTakePhotoCmd(); 
@@ -116,32 +126,36 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
            j++;
            count++;
          }
-      }
-      analogWrite(GREEN, 0);            
-      // Print chunk      
-      /*
+      } 
+	  
+      /* Print chunk 
       for(j=0;j<count;j++)
       {   
         if(chunk[j]<0x10)
-          ExtUart_printChar('0');
-        ExtUart_printHEX(chunk[j]);
+          DEBUG.printChar('0');
+        DEBUG.printHEX(chunk[j]);
       }                  
-      ExtUart_println();
+      DEBUG.println();
       */ 
    }  
 
-  // Inject flight data
+  // Inject gps data into comments field
   if(jpegEnd)    
   {
-    // [FF D8] [FF FE] [size] [comments]
-    // ---2---  --2---  ---2-- ----34----
-    // 0     1  2    3  4    5 6       40
-    // FF D8 and FF FE is already written
-    // Size is 34 --> 0x00 0x24        
+    // [FF D8]  [FF FE] [size ] [comments]  <-- Field Name
+    // ---2---  ---2--- ---2--- ----34----  <-- Field capacity
+    // 0     1  2    3  4    5  6       40  <-- Field start / end position in the jpeg header
+    
+	// FF D8 is already written
+    
+	// FF FE is already written
+	
+	// SIZE is 34 ( 0x00 0x24 )      
     pictureFile.seekSet(4);
     pictureFile.write((byte)0);
     pictureFile.write(0x24);
 
+	// comments are 34 byte --> "@@@@,2059,xx.xxxx,yy.yyyy,zzzzz,@@@@"
     byte i;
     
     for(i=0; i<4; i++)
