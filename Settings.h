@@ -4,6 +4,8 @@
 #define DEBUG_ENABLE 0
 #define DEBUG Serial0
 
+#define ImgTimeout 30		 // Seconds
+
 // ATMega644p pins
 #define SDChipSelect 3   // PB3 
 #define CS           4   // PB4
