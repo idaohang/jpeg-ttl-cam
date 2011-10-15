@@ -39,7 +39,7 @@ boolean CAM::setup()
   Serial1.begin(38400);
   SetBaudRate(115200);
   SetImageSize();
-  SendResetCmd();    
+  Reset();    
   return true; 
 }
 
@@ -61,7 +61,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
      return;
    }
    
-   SendTakePhotoCmd(); 
+   StartShooting(); 
       
    // Wait for Interval Time
    delay(readDelay);
@@ -85,7 +85,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       count=0;
       
       // Very critical part. 
-	  // Timeout after 30 seconds. With max serial baudrate and microSD write cycles it takes about 30sec.
+      // Timeout after 30 seconds. With max serial baudrate and microSD write cycles it takes about 30sec.
       if (millis() - startTime > 30000) 
       { 
         if(DEBUG_ENABLE)
@@ -94,7 +94,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       }
       
       // Request data
-      SendReadDataCmd();     
+      ReadData();     
 
       // Wait for Interval Time
       delay(readDelay);
@@ -108,7 +108,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       }
       
       // Move jpeg chunk from camera's internal buffer to microSD 
-	  // Chunk size is always 80 byte
+      // Chunk size is always 80 byte
       while(Serial1.available())
       {
         b = Serial1.read();
@@ -120,7 +120,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
            // Check whether we reached jpeg end
            if((chunk[j-1]==0xFF)&&(chunk[j]==0xD9))
            {
-             StopTakePhotoCmd(); 
+             StopShooting(); 
              jpegEnd = true; 
            }  
            j++;
@@ -135,7 +135,6 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
           DEBUG.printChar('0');
         DEBUG.printHEX(chunk[j]);
       }                  
-      DEBUG.println();
       */ 
    }  
 
@@ -146,11 +145,11 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
     // ---2---  ---2--- ---2--- ----34----  <-- Field capacity
     // 0     1  2    3  4    5  6       40  <-- Field start / end position in the jpeg header
     
-	// FF D8 is already written
+    // FF D8 is already written
     
-	// FF FE is already written
+    // FF FE is already written
 	
-	// SIZE is 34 ( 0x00 0x24 )      
+    // SIZE is 34 ( 0x00 0x24 )      
     pictureFile.seekSet(4);
     pictureFile.write((byte)0);
     pictureFile.write(0x24);
@@ -188,7 +187,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
 }
 
 // Send get file size command
-void CAM::SendGetFileSizeCmd()
+void CAM::GetFileSize()
 {
       // Command [56 00 34 01 00]
    
@@ -203,7 +202,7 @@ void CAM::SendGetFileSizeCmd()
 }
 
 //Send Reset command
-void CAM::SendResetCmd()
+void CAM::Reset()
 {
       Serial1.write(0x56);
       Serial1.write(0x00);
@@ -212,7 +211,7 @@ void CAM::SendResetCmd()
 }
 
 //Send take picture command
-void CAM::SendTakePhotoCmd()
+void CAM::StartShooting()
 {
       Serial1.write(0x56);
       Serial1.write(0x00);
@@ -222,7 +221,7 @@ void CAM::SendTakePhotoCmd()
 }
 
 //Read data
-void CAM::SendReadDataCmd()
+void CAM::ReadData()
 {  
       MH = curAddr >> 8;
       ML = curAddr & 0xFF;
@@ -245,7 +244,7 @@ void CAM::SendReadDataCmd()
       curAddr += chunkSize; // address increases according to chunk size
 }
 
-void CAM::StopTakePhotoCmd()
+void CAM::StopShooting()
 {
     Serial1.write(0x56);
     Serial1.write(0x00);
@@ -290,7 +289,7 @@ void CAM::SetCompressRatio()
    Serial1.write(0x01);
    Serial1.write(0x12);
    Serial1.write(0x04);
-   Serial1.write(0x00);     
+   Serial1.write(0x36);     
 }
 
 void CAM::EnterPowerSave()
