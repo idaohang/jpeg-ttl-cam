@@ -17,6 +17,9 @@ Example sketch
 -----------------
 #include <Fat16.h>
 #include <EEPROM.h>
+#include "CAM.h"
+
+CAM camera = CAM();
 
 void setup()
 {  
