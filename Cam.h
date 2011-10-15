@@ -5,7 +5,6 @@
   General Public License, version 2. You may use, modify, 
   and redistribute it under the terms of this license. 
   A copy should be included with this source. 
-  
 */
 
 #ifndef __CAM_H__
@@ -25,11 +24,11 @@ class CAM
     void shoot(char *, char *, char *, char *);
   
   private:  
-    void SendGetFileSizeCmd();
-    void SendTakePhotoCmd();
-    void SendResetCmd();
-    void SendReadDataCmd();
-    void StopTakePhotoCmd();
+    void GetFileSize();
+    void StartShooting();
+    void Reset();
+    void ReadData();
+    void StopShooting();
     void SetImageSize();
     void SetCompressRatio();
     void EnterPowerSave();
