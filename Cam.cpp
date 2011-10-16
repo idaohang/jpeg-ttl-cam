@@ -45,7 +45,7 @@ boolean CAM::setup()
 
 void CAM::shoot(char *time, char *lat, char *lon, char *alt)
 {  
-   snprintf(PICname,11,"PIC%03d.JPG",++PICid);
+   snprintf(PICname,12,"PIC%04d.JPG",++PICid);
    
    if(DEBUG_ENABLE)
    {
