@@ -23,7 +23,7 @@ CAM camera = CAM();
 
 void setup()
 {  
-	camera.setup();
+	camera.setup("VGA", 115200);
 }
 void loop()
 {
