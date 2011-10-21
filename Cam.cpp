@@ -137,9 +137,6 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       */ 
    } 
   
-   //unsigned long stopT = millis() - startT;
-   //DEBUG.print(' '); DEBUG.print(curAddr); DEBUG.print(' '); DEBUG.print(stopT); 
-
   // Inject flight data
   if(jpegEnd)    
   {
