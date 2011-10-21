@@ -20,7 +20,7 @@ class CAM
 {
   public:
     CAM();
-    boolean setup();
+    boolean setup(char *, long int);
     void shoot(char *, char *, char *, char *);
   
   private:  
@@ -29,24 +29,23 @@ class CAM
     void Reset();
     void ReadData();
     void StopShooting();
-    void SetImageSize();
+    void SetImageSize(char *);
     void SetCompressRatio();
     void EnterPowerSave();
-    void ExitPowerSave(); 
-    void SetBaudRate(long int baudrate);
+    void ExitPowerSave();
+    void SetBaudRate(long int);
     
     byte b;
     boolean jpegEnd;
-    unsigned int i, j, count;  
+    unsigned int j; 
     long int curAddr;
     byte MH, ML;           // Starting Address
-    byte LH, LL;           // Length High, Length Low --> 80.
-    byte chunk[80];
+    byte LH, LL;           // Length 
+    byte chunk[128];
     unsigned int chunkSize;
-    byte DH, DL;           // Delay High, Delay Low
+    byte DH, DL;           // Delay
     byte readDelay;   
     unsigned int PICid;
-    byte healthFlag;
 };
 
 #endif
