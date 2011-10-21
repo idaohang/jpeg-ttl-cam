@@ -75,7 +75,6 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
    unsigned long startTime = millis();
    jpegEnd = false;
    curAddr = 0;  
-   unsigned long startT = millis();
 
    while(!jpegEnd)
    {  
@@ -106,8 +105,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       }
       
       // Copy jpeg chunk from camera's internal buffer to avr buffer
-      // Chunk size is always 80 byte
-      analogWrite(GREEN, 50);
+      // Chunk size is always 128 byte
       while(Serial1.available())
       {
         b = Serial1.read();
@@ -124,7 +122,6 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
            j++;
          }
       }
-      analogWrite(GREEN, 0);  
       
       // Write jpeg chunk from avr buffer to microSD
       pictureFile.write(chunk, j);          
@@ -140,8 +137,8 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       */ 
    } 
   
-   unsigned long stopT = millis() - startT;
-   DEBUG.print(' '); DEBUG.print(curAddr); DEBUG.print(' '); DEBUG.print(stopT); 
+   //unsigned long stopT = millis() - startT;
+   //DEBUG.print(' '); DEBUG.print(curAddr); DEBUG.print(' '); DEBUG.print(stopT); 
 
   // Inject flight data
   if(jpegEnd)    
