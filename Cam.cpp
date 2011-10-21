@@ -140,42 +140,33 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
   // Inject flight data
   if(jpegEnd)    
   {
+     strcpy(gpsdata, "@@@@");
+     strcat(gpsdata, time);
+     strcat(gpsdata, ",");
+     strcat(gpsdata, lat);
+     strcat(gpsdata, ",");
+     strcat(gpsdata, lon);
+     strcat(gpsdata, ",");
+     strcat(gpsdata, alt);
+     strcat(gpsdata, "@@@@");
+     
     // [FF D8] [FF FE] [size ] [comments] <-- Field Name
     // ---2--- ---2--- ---2--- ----34---- <-- Field capacity
-    // 0 1 2 3 4 5 6 40 <-- Field start / end position in the jpeg header
+    // 0     1 2     3 4     5 6       40 <-- Field start / end position in the jpeg header
     
     // FF D8 is already written
-    
     // FF FE is already written
-
-    // SIZE is 34 ( 0x00 0x24 )     
+    // So move on the 5th byte
     pictureFile.seekSet(4);
+    
+    // length of comments is 34 ( 0x00 0x24 )    
     pictureFile.write((byte)0);
     pictureFile.write(0x24);
+    
+    // Write comment string
+    // @@@@,2059,xx.xxxx,yy.yyyy,zzzzz,@@@@
+    pictureFile.write(gpsdata);  
 
-    // comments are 34 byte --> "@@@@,2059,xx.xxxx,yy.yyyy,zzzzz,@@@@"
-    byte i;
-    
-    for(i=0; i<4; i++)
-      pictureFile.write('@');
-    
-    for(i=0; i<4; i++)
-      pictureFile.write(time[i]);
-    pictureFile.write(',');
-    
-    for(i=0; i<7; i++)
-      pictureFile.write(lat[i]);
-    pictureFile.write(',');  
-      
-    for(i=0; i<7; i++)
-      pictureFile.write(lon[i]);
-    pictureFile.write(',');
-    
-    for(i=0; i<5; i++)
-      pictureFile.write(alt[i]);
-      
-    for(i=0; i<4; i++)
-      pictureFile.write('@');
             
     if(DEBUG_ENABLE)
       DEBUG.println(" Ok");     
