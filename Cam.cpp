@@ -1,12 +1,3 @@
-/*
-  Copyright (C)2011 Kostas Tamateas <nosebleedKT@gmail.com> 
- 
-  This program is distributed under the terms of the GNU 
-  General Public License, version 2. You may use, modify, 
-  and redistribute it under the terms of this license. 
-  A copy should be included with this source. 
-*/
-
 #include "Cam.h"
 
 Fat16 pictureFile;
@@ -14,21 +5,18 @@ char PICname[] = "PIC0000.JPG";
 
 CAM::CAM()
 {
-  LH = 0x00;
-  LL = 0x50;
-  chunkSize = 80;
-  DH = 0x00;
-  DL = 0x0A;
-  readDelay = 25;  
+  chunkSize = 128;
+  readDelay = 10;  
 }
 
-boolean CAM::setup()
+boolean CAM::setup(char *resolution, long int baudrate)
 { 
   // Get last picture id from eeprom
   byte a = EEPROM.read(0);
   byte b = EEPROM.read(1);   
   PICid = b << 8 | a & 0xFF;
   
+  // Roll back picture naming if we reach 9.999 files
   if(PICid > 9999)
   {
     PICid = 0;
@@ -37,9 +25,11 @@ boolean CAM::setup()
   }    
   
   Serial1.begin(38400);
-  SetBaudRate(115200);
-  SetImageSize();
-  Reset();    
+  SetBaudRate(baudrate);
+  SetImageSize(resolution);
+  Reset();  
+  delay(4000); 
+  
   return true; 
 }
 
@@ -62,7 +52,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
    }
    
    StartShooting(); 
-      
+     
    // Wait for Interval Time
    delay(readDelay);
   
@@ -70,22 +60,21 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
    while(Serial1.available())
    {
      b = Serial1.read();
-     if(DEBUG_ENABLE)
-       DEBUG.print(b);
+     //if(DEBUG_ENABLE)
+       //DEBUG.print(b);
    }
    
    unsigned long startTime = millis();
    jpegEnd = false;
    curAddr = 0;  
-   
-   // Until we reach jpeg end, poll chunks, transfer chunks, write chunks
+   unsigned long startT = millis();
+
    while(!jpegEnd)
    {  
       j=0;
-      count=0;
-      
-      // Very critical part. 
-      // A 640x480 image transfered at max baudrate(115200) and written on microSD takes about 30sec.
+
+      // Very critical part.
+      // A 640x480 image transfered at max baudrate(115200) and written on microSD takes about 10sec.
       // Increase ImgTimeout if you operate at lower baudrates 
       if (millis() - startTime > ImgTimeout*1000) 
       { 
@@ -95,7 +84,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       }
       
       // Request data
-      ReadData();     
+      ReadData();       
 
       // Wait for Interval Time
       delay(readDelay);
@@ -108,49 +97,56 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
         k++;
       }
       
-      // Move jpeg chunk from camera's internal buffer to microSD 
+      // Copy jpeg chunk from camera's internal buffer to avr buffer
       // Chunk size is always 80 byte
+      analogWrite(GREEN, 50);
       while(Serial1.available())
       {
         b = Serial1.read();
         if((j<chunkSize)&&(!jpegEnd))
         {
            chunk[j] = b;
-           pictureFile.write(b);
-                      
-           // Check whether we reached jpeg end
-           if((chunk[j-1]==0xFF)&&(chunk[j]==0xD9))
+       
+           // Check if the jpeg is over
+           if((chunk[j-1]==0xFF)&&(b==0xD9))
            {
              StopShooting(); 
              jpegEnd = true; 
            }  
            j++;
-           count++;
          }
-      } 
-	  
-      /* Print chunk 
-      for(j=0;j<count;j++)
-      {   
-        if(chunk[j]<0x10)
-          DEBUG.printChar('0');
-        DEBUG.printHEX(chunk[j]);
-      }                  
-      */ 
-   }  
+      }
+      analogWrite(GREEN, 0);  
+      
+      // Write jpeg chunk from avr buffer to microSD
+      pictureFile.write(chunk, j);          
 
-  // Inject gps data into comments field
+      /* Print chunk
+      for(byte i=0;i<j;i++)
+      {   
+        if(chunk[i]<0x10)
+          DEBUG.printChar('0');
+        DEBUG.printHEX(chunk[i]);
+      }                  
+      DEBUG.println();
+      */ 
+   } 
+  
+   unsigned long stopT = millis() - startT;
+   DEBUG.print(' '); DEBUG.print(curAddr); DEBUG.print(' '); DEBUG.print(stopT); 
+
+  // Inject flight data
   if(jpegEnd)    
   {
-    // [FF D8]  [FF FE] [size ] [comments]  <-- Field Name
-    // ---2---  ---2--- ---2--- ----34----  <-- Field capacity
-    // 0     1  2    3  4    5  6       40  <-- Field start / end position in the jpeg header
+    // [FF D8] [FF FE] [size ] [comments] <-- Field Name
+    // ---2--- ---2--- ---2--- ----34---- <-- Field capacity
+    // 0 1 2 3 4 5 6 40 <-- Field start / end position in the jpeg header
     
     // FF D8 is already written
     
     // FF FE is already written
-	
-    // SIZE is 34 ( 0x00 0x24 )      
+
+    // SIZE is 34 ( 0x00 0x24 )     
     pictureFile.seekSet(4);
     pictureFile.write((byte)0);
     pictureFile.write(0x24);
@@ -178,13 +174,16 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       
     for(i=0; i<4; i++)
       pictureFile.write('@');
+            
+    if(DEBUG_ENABLE)
+      DEBUG.println(" Ok");     
   }  
-              
+   
   pictureFile.close();  
-  
+
   // Save last picture id on eeprom   
   EEPROM.write(0, PICid & 0xFF);
-  EEPROM.write(1, (PICid >> 8) &  0xFF);  
+  EEPROM.write(1, (PICid >> 8) &  0xFF);    
 }
 
 // Send get file size command
@@ -224,8 +223,13 @@ void CAM::StartShooting()
 //Read data
 void CAM::ReadData()
 {  
-      MH = curAddr >> 8;
-      ML = curAddr & 0xFF;
+      MH = (curAddr >> 8) & 0xFF;
+      ML = (curAddr >> 0) & 0xFF;
+      LH = (chunkSize >> 8) & 0xFF;
+      LL = (chunkSize >> 0) & 0xFF;
+      DH = (readDelay >> 8) & 0xFF;
+      DL = (readDelay >> 0) & 0xFF;
+      
       Serial1.write(0x56);
       Serial1.write(0x00);
       Serial1.write(0x32);
@@ -254,7 +258,7 @@ void CAM::StopShooting()
     Serial1.write(0x03);        
 }
 
-void CAM::SetImageSize()
+void CAM::SetImageSize(char *resolution)
 {
    // Command + Reset [56 00 26 00]
    
@@ -264,6 +268,17 @@ void CAM::SetImageSize()
    
    // Returns --> 76 00 31 00 00
    
+   byte res;
+   
+   if(strcmp(resolution, "VGA") == 0)
+     res = 0x00;
+   else if(strcmp(resolution, "QVGA") == 0)
+     res = 0x11;
+   else if(strcmp(resolution, "QQVGA") == 0)
+     res = 0x22;
+   else
+     res = 0x00; 
+   
    Serial1.write(0x56);
    Serial1.write(0x00);
    Serial1.write(0x31);
@@ -272,13 +287,13 @@ void CAM::SetImageSize()
    Serial1.write(0x01);
    Serial1.write(0x00);
    Serial1.write(0x19);
-   Serial1.write(0x00);
+   Serial1.write(res);
 }
 
 void CAM::SetCompressRatio()
 {
   // Command + Ratio (last hex number 00 to FF)
-  // 56 0 31 05 01 01 12 04 36 --> 36%
+  // 56 0 31 05 01 01 12 04 36 
   
   // Returns --> 76 00 31 00 00 36
   
@@ -290,7 +305,9 @@ void CAM::SetCompressRatio()
    Serial1.write(0x01);
    Serial1.write(0x12);
    Serial1.write(0x04);
-   Serial1.write(0x36);     
+   Serial1.write(0x00);    
+  
+   delayMicroseconds(1000 * 500); 
 }
 
 void CAM::EnterPowerSave()
@@ -311,7 +328,7 @@ void CAM::ExitPowerSave()
 
 void CAM::SetBaudRate(long int baudrate)
 {  
-  // Command + XX XX (two last hex numbers)
+  // Command + XX YY (two last hex numbers)
   // 56 00 24 03 01 1C 4C --> 57600 baud
 
   // AE C8 9600
@@ -319,42 +336,52 @@ void CAM::SetBaudRate(long int baudrate)
   // 2A F2 38400
   // 1C 4C 57600
   // 0D A6 115200
+  // 06 53 230400
   
   // Returns --> 76 00 24 00 00
   
+  byte XX;
+  byte YY;
+  
+  switch(baudrate)
+  {
+   case 9600:
+     XX = 0xAE;
+     YY = 0xC8;        
+     break;
+   case 19200:
+     XX = 0x56;
+     YY = 0xE4;          
+     break;  
+   case 38400:
+     XX = 0x2A;
+     YY = 0xF2;              
+     break; 
+   case 57600:
+     XX = 0x1C;
+     YY = 0x4C;        
+     break;         
+   case 115200:
+     XX = 0x0D;
+     YY = 0xA6;         
+     break;
+   case 230400:
+     XX = 0x06;
+     YY = 0x53;
+     break;    
+   default:
+     XX = 0x2A;
+     YY = 0xF2;         
+     break;      
+   }
+   
    Serial1.write(0x56);
    Serial1.write(0x00);
    Serial1.write(0x24);
    Serial1.write(0x03);
    Serial1.write(0x01);
-   
-   switch(baudrate)
-   {
-     case 9600:
-       Serial1.write(0xAE);
-       Serial1.write(0xC8);        
-       break;
-     case 19200:
-       Serial1.write(0x56);
-       Serial1.write(0xE4);          
-       break;  
-     case 38400:
-       Serial1.write(0x2A);
-       Serial1.write(0xF2);              
-       break; 
-     case 57600:
-       Serial1.write(0x1C);
-       Serial1.write(0x4C);        
-       break;         
-     case 115200:
-       Serial1.write(0x0D);
-       Serial1.write(0xA6);         
-       break;         
-     default:
-       Serial1.write(0x2A);
-       Serial1.write(0xF2);         
-       break;      
-   }
+   Serial1.write(XX);
+   Serial1.write(YY);   
    
    Serial1.end();
    Serial1.begin(baudrate); 
