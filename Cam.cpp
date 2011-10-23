@@ -36,7 +36,7 @@ boolean CAM::setup(char *resolution, long int baudrate)
   SetBaudRate(baudrate);
   SetImageSize(resolution);
   Reset();  
-  delay(4000); 
+  delay(3000); 
   
   return true; 
 }
