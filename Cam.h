@@ -46,6 +46,7 @@ class CAM
     byte DH, DL;           // Delay
     byte readDelay;   
     unsigned int PICid;
+    char gpsdata[34];
 };
 
 #endif
