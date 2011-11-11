@@ -140,7 +140,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
   // Inject flight data
   if(jpegEnd)    
   {
-     strcpy(gpsdata, "@@@@");
+     strcpy(gpsdata, "@@");
      strcat(gpsdata, time);
      strcat(gpsdata, ",");
      strcat(gpsdata, lat);
@@ -148,26 +148,22 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
      strcat(gpsdata, lon);
      strcat(gpsdata, ",");
      strcat(gpsdata, alt);
-     strcat(gpsdata, "@@@@");
+     strcat(gpsdata, "@@");
      
     // [FF D8] [FF FE] [size ] [comments] <-- Field Name
-    // ---2--- ---2--- ---2--- ----34---- <-- Field capacity
-    // 0     1 2     3 4     5 6       40 <-- Field start / end position in the jpeg header
+    // ---2--- ---2--- ---2--- ----36---- <-- Field capacity
+    // 0     1 2     3 4     5 6       42 <-- Field start / end position in the jpeg header
     
     // FF D8 is already written
     // FF FE is already written
-    // So move on the 5th byte
-    pictureFile.seekSet(4);
-    
-    // length of comments is 34 ( 0x00 0x24 )    
-    pictureFile.write((byte)0);
-    pictureFile.write(0x24);
+    // SIZE is already written
+    // So move on the 7th byte
+    pictureFile.seekSet(6);
     
     // Write comment string
-    // @@@@,2059,xx.xxxx,yy.yyyy,zzzzz,@@@@
+    // @@2059,xx.xxxx,yy.yyyy,zzzzzzzzz@@
     pictureFile.write(gpsdata);  
 
-            
     if(DEBUG_ENABLE)
       DEBUG.println(" Ok");     
   }  
