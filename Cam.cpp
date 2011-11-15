@@ -97,7 +97,7 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
           
       // Read Request-data response
       b = 0;
-      while(Serial1.available()>0 && b<5)
+      while(Serial1.available() && b<5)
       {
         Serial1.read();
         b++;
