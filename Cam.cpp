@@ -9,12 +9,10 @@
 #include "Cam.h"
 
 Fat16 pictureFile;
-char PICname[] = "PIC0000.JPG";
+char PICname[] = "PIC000.JPG";
 
 CAM::CAM()
 {
-  chunkSize = 128;
-  readDelay = 10;  
 }
 
 boolean CAM::setup(char *resolution, long int baudrate)
@@ -24,8 +22,8 @@ boolean CAM::setup(char *resolution, long int baudrate)
   byte b = EEPROM.read(1);   
   PICid = b << 8 | a & 0xFF;
   
-  // Roll back picture naming if we reach 9.999 files
-  if(PICid > 9999)
+  // Roll back picture naming if we reach 512 files
+  if(PICid > 512)
   {
     PICid = 0;
     EEPROM.write(0, 0);
@@ -38,12 +36,15 @@ boolean CAM::setup(char *resolution, long int baudrate)
   Reset();  
   delay(3000); 
   
-  return true; 
+  if(Serial1.available()>0) 
+    return true;
+  else
+    return false;
 }
 
 void CAM::shoot(char *time, char *lat, char *lon, char *alt)
 {  
-   snprintf(PICname,12,"PIC%04d.JPG",++PICid);
+   snprintf(PICname,11,"PIC%03d.JPG",++PICid);
    
    if(DEBUG_ENABLE)
    {
@@ -67,23 +68,21 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
    // Skip camera messages
    while(Serial1.available())
    {
-     b = Serial1.read();
-     //if(DEBUG_ENABLE)
-       //DEBUG.print(b);
+     Serial1.read();
    }
    
-   unsigned long startTime = millis();
-   jpegEnd = false;
-   curAddr = 0;  
+   curAddr = 0;    
+   jpegEnd = false;   
+   unsigned long startTime = millis(); 
 
    while(!jpegEnd)
    {  
       j=0;
 
       // Very critical part.
-      // A 640x480 image transfered at max baudrate(115200) and written on microSD takes about 10sec.
+      // A 640x480 image transfered at max baudrate(115200) and written on microSD takes about 15sec.
       // Increase ImgTimeout if you operate at lower baudrates 
-      if (millis() - startTime > ImgTimeout*1000) 
+      if (millis() - startTime > 15000) 
       { 
         if(DEBUG_ENABLE)
           DEBUG.println("Timed out"); 
@@ -97,11 +96,11 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
       delay(readDelay);
           
       // Read Request-data response
-      byte k=0;
-      while(Serial1.available()>0 && k<5)
+      b = 0;
+      while(Serial1.available()>0 && b<5)
       {
-        b = Serial1.read();
-        k++;
+        Serial1.read();
+        b++;
       }
       
       // Copy jpeg chunk from camera's internal buffer to avr buffer
@@ -111,15 +110,14 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
         b = Serial1.read();
         if((j<chunkSize)&&(!jpegEnd))
         {
-           chunk[j] = b;
+           chunk[j++] = b;
        
            // Check if the jpeg is over
-           if((chunk[j-1]==0xFF)&&(b==0xD9))
+           if((chunk[j-2]==0xFF)&&(b==0xD9))
            {
              StopShooting(); 
              jpegEnd = true; 
            }  
-           j++;
          }
       }
       
