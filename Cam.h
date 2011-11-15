@@ -16,6 +16,9 @@
 #include <EEPROM.h>
 #include "Settings.h"
 
+const unsigned int chunkSize = 128;
+const byte readDelay = 10;
+
 class CAM
 {
   public:
