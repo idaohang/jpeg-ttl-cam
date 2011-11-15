@@ -148,13 +148,13 @@ void CAM::shoot(char *time, char *lat, char *lon, char *alt)
      strcat(gpsdata, alt);
      strcat(gpsdata, "@@");
      
-    // [FF D8] [FF FE] [size ] [comments] <-- Field Name
-    // ---2--- ---2--- ---2--- ----36---- <-- Field capacity
+    // [FF D8] [FF FE] [size    comments] <-- Field Name
+    // ---2--- ---2--- ---2--- ----34---- <-- Field capacity
     // 0     1 2     3 4     5 6       42 <-- Field start / end position in the jpeg header
     
     // FF D8 is already written
     // FF FE is already written
-    // SIZE is already written
+    // SIZE is already written. Size includes itself and comments.
     // So move on the 7th byte
     pictureFile.seekSet(6);
     
@@ -351,11 +351,7 @@ void CAM::SetBaudRate(long int baudrate)
    case 115200:
      XX = 0x0D;
      YY = 0xA6;         
-     break;
-   case 230400:
-     XX = 0x06;
-     YY = 0x53;
-     break;    
+     break;   
    default:
      XX = 0x2A;
      YY = 0xF2;         
